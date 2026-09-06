@@ -467,51 +467,6 @@
     <div class="history-empty">No activity recorded yet.</div>
   </div>
 </div>
-
-/* ---------- USER DRAWER ---------- */
-  .drawer-overlay{
-    display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);
-    z-index:50;max-width:480px;margin:0 auto;
-  }
-  .drawer-overlay.active{display:block;}
-  .drawer{
-    position:absolute;left:0;top:0;bottom:0;width:78%;max-width:340px;
-    background:#fff;display:flex;flex-direction:column;
-    transform:translateX(-100%);transition:transform .25s ease;
-  }
-  .drawer-overlay.active .drawer{transform:translateX(0);}
-  .drawer-header{
-    background:var(--blue);color:#fff;padding:50px 24px 28px;
-    display:flex;flex-direction:column;align-items:center;gap:12px;
-  }
-  .avatar-lg{
-    width:96px;height:96px;border-radius:50%;background:#fff;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .drawer-header .name{font-size:20px;font-weight:800;letter-spacing:.5px;text-align:center;}
-  .drawer-body{flex:1;padding:18px;overflow-y:auto;}
-  .drawer-section-title{font-size:11.5px;font-weight:800;color:#9096a8;letter-spacing:.5px;margin:6px 4px 8px;}
-  .drawer-item{
-    width:100%;text-align:left;padding:16px 18px;border:none;background:#fff;
-    border-radius:16px;box-shadow:0 4px 16px rgba(30,40,90,.08);
-    font-size:15px;font-weight:600;margin-bottom:10px;cursor:pointer;
-    display:flex;align-items:center;justify-content:space-between;
-  }
-  .drawer-item.selected{box-shadow:0 0 0 2px var(--blue) inset;color:var(--blue);}
-  .drawer-item.add-device{color:var(--blue);justify-content:center;}
-  .drawer-footer{padding:18px;}
-  .signout-btn{
-    width:100%;padding:16px;border:none;border-radius:20px;
-    background:var(--blue);color:#fff;font-weight:800;font-size:15px;cursor:pointer;
-  }
-
-  .toast{
-    position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
-    background:#1c1e29;color:#fff;padding:12px 20px;border-radius:14px;
-    font-size:13.5px;z-index:200;opacity:0;transition:opacity .3s;
-    max-width:90%;text-align:center;
-  }
-  .toast.show{opacity:1;}
 </style>
 </head>
 <body>

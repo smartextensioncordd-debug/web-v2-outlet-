@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -152,6 +151,7 @@
     flex:0 0 auto;padding:8px 14px;border-radius:14px;
     background:rgba(255,255,255,.15);color:#fff;font-size:12.5px;font-weight:700;
     border:1.5px solid transparent;cursor:pointer;white-space:nowrap;
+    -webkit-user-select:none;user-select:none;
   }
   .device-chip.selected{background:#fff;color:var(--blue);}
   .device-chip.add-chip{background:transparent;border:1.5px dashed rgba(255,255,255,.6);}
@@ -184,16 +184,30 @@
     padding:20px 18px 22px;
     box-shadow:0 10px 30px rgba(30,40,90,.07);
     min-height:150px;display:flex;flex-direction:column;justify-content:space-between;
+    cursor:pointer;
+    transition:min-height .28s cubic-bezier(.4,0,.2,1), box-shadow .2s ease;
   }
+  .card:active{box-shadow:0 6px 18px rgba(30,40,90,.1);}
+  .card.expanded{min-height:220px;grid-column:1 / -1;}
   .card h3{
     font-size:13px;font-weight:800;color:var(--blue);letter-spacing:.5px;margin-bottom:14px;
   }
   .reading{display:flex;align-items:baseline;gap:6px;}
   .reading .val{font-size:34px;font-weight:700;}
   .reading .unit{font-size:15px;font-weight:700;color:#444;}
-  .card svg{margin-top:10px;}
+  .card svg.card-icon{margin-top:10px;}
   .card.warn{box-shadow:0 0 0 2px #ffb020 inset;}
   .card.danger{box-shadow:0 0 0 2px #ef4444 inset;}
+
+  /* Sparkline strip shown only once a card is expanded - a quiet trace of
+     the last readings, purely decorative context rather than a full chart. */
+  .card-wave{
+    display:none;margin-top:12px;height:44px;
+  }
+  .card.expanded .card-wave{display:block;}
+  .card-wave svg{width:100%;height:100%;display:block;}
+  .card-wave path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .card-wave .wave-fill{stroke:none;}
 
   .sockets-section{padding:0 22px 6px;}
   .sockets-title{font-size:13px;font-weight:800;color:#8a8fa3;letter-spacing:.5px;margin-bottom:10px;}
@@ -208,8 +222,11 @@
   .socket-label{font-size:11.5px;font-weight:700;color:#555;}
   .socket-state{font-size:10.5px;color:#999;}
 
+  /* Per-device stopwatch, now anchored directly under the sockets row for
+     the device currently selected - each device carries its own timer
+     state, this just displays whichever one is on screen. */
   .timer-section{
-    margin:16px 22px 0;padding:16px 20px;border-radius:20px;
+    margin:14px 22px 0;padding:16px 20px;border-radius:20px;
     background:#fff;box-shadow:0 6px 18px rgba(30,40,90,.06);
     display:none;align-items:center;justify-content:space-between;
   }
@@ -282,6 +299,20 @@
     display:flex;align-items:center;justify-content:center;
   }
   .drawer-header .name{font-size:20px;font-weight:800;letter-spacing:.5px;text-align:center;}
+  /* Editable display-name field: looks like static text until tapped, then
+     becomes an inline input - no separate "edit mode" screen needed. */
+  .name-edit-row{display:flex;align-items:center;gap:8px;justify-content:center;}
+  .name-input{
+    font-size:20px;font-weight:800;letter-spacing:.5px;text-align:center;
+    background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);
+    border-radius:12px;color:#fff;padding:6px 12px;width:100%;max-width:220px;
+  }
+  .name-input::placeholder{color:rgba(255,255,255,.7);}
+  .name-edit-btn{
+    background:rgba(255,255,255,.15);border:none;border-radius:50%;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex:0 0 auto;
+  }
   .drawer-body{flex:1;padding:18px;overflow-y:auto;}
   .drawer-section-title{font-size:11.5px;font-weight:800;color:#9096a8;letter-spacing:.5px;margin:6px 4px 8px;}
   .drawer-item{
@@ -292,6 +323,315 @@
   }
   .drawer-item.selected{box-shadow:0 0 0 2px var(--blue) inset;color:var(--blue);}
   .drawer-item.add-device{color:var(--blue);justify-content:center;}
+  /* Device row in the drawer: the row itself selects the device; the
+     trailing remove icon is its own tap target so the two never conflict. */
+  .device-row{
+    width:100%;display:flex;align-items:center;background:#fff;
+    border-radius:16px;box-shadow:0 4px 16px rgba(30,40,90,.08);
+    margin-bottom:10px;overflow:hidden;
+  }
+  .device-row.selected{box-shadow:0 0 0 2px var(--blue) inset;}
+  .device-row-main{
+    flex:1;text-align:left;padding:16px 18px;border:none;background:none;
+    font-size:15px;font-weight:600;cursor:pointer;color:inherit;
+  }
+  .device-row.selected .device-row-main{color:var(--blue);}
+  .device-row-remove{
+    padding:0 16px;align-self:stretch;border:none;background:none;cursor:pointer;
+    display:flex;align-items:center;color:#c4c8d6;
+  }
+  .device-row-remove:active{color:var(--red);}
+  .drawer-footer{padding:18px;}
+  .signout-btn{
+    width:100%;padding:16px;border:none;border-radius:20px;
+    background:var(--blue);color:#fff;font-weight:800;font-size:15px;cursor:pointer;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+    background:#1c1e29;color:#fff;padding:12px 20px;border-radius:14px;
+    font-size:13.5px;z-index:200;opacity:0;transition:opacity .3s;
+    max-width:90%;text-align:center;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="authScreen" class="screen active">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
+    </div>
+    <div class="auth-title">OUTLET</div>
+    <div class="auth-sub">Smart Extension Cord Monitor</div>
+
+    <button class="google-btn" id="googleSignInBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l6-6C33.6 6.5 29.1 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.3-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c2.8 0 5.3 1 7.3 2.7l6-6C33.6 6.5 29.1 4.5 24 4.5c-7.6 0-14.1 4.3-17.7 10.2z"/><path fill="#4CAF50" d="M24 43.5c5 0 9.6-1.9 13-5.1l-6.2-5.2c-2 1.4-4.5 2.3-6.8 2.3-5.3 0-9.7-3.6-11.3-8.4l-6.5 5C9.8 39.1 16.4 43.5 24 43.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.2 5.2C40.9 36 43.5 30.5 43.5 24c0-1.2-.1-2.4-.3-3.5z"/></svg>
+      Sign in with Google
+    </button>
+
+    <div class="divider">OR</div>
+
+    <input type="email" id="emailInput" class="field" placeholder="Email address" autocomplete="email">
+
+    <div class="password-wrap">
+      <input type="password" id="passwordInput" class="field" placeholder="Password" autocomplete="current-password">
+      <button type="button" class="toggle-eye" data-target="passwordInput" aria-label="Show password"></button>
+    </div>
+
+    <div class="password-wrap" id="confirmPasswordWrap" style="display:none;">
+      <input type="password" id="confirmPasswordInput" class="field" placeholder="Confirm Password" autocomplete="new-password">
+      <button type="button" class="toggle-eye" data-target="confirmPasswordInput" aria-label="Show password"></button>
+    </div>
+
+    <button class="primary-btn" id="authSubmitBtn">LOG IN</button>
+    <div class="auth-error" id="authError"></div>
+
+    <div class="switch-mode">
+      <span id="switchModeText">Don't have an account?</span>
+      <a href="#" id="switchModeLink">Create Account</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DEVICE LINK SCREEN ============ -->
+<div id="deviceLinkScreen" class="screen">
+  <div class="auth-card">
+    <div class="auth-title" style="color:var(--blue)">ADD DEVICE</div>
+    <div class="auth-sub">Enter the device code printed on the unit</div>
+    <input type="text" id="deviceCodeInput" class="field" placeholder="e.g. 0001" inputmode="numeric" pattern="[0-9]*" style="text-align:center;letter-spacing:3px;font-weight:700;">
+    <button class="primary-btn" id="linkDeviceBtn">CONNECT DEVICE</button>
+    <div class="auth-error" id="deviceError"></div>
+    <div class="link-skip" id="skipLinkBtn">Skip for now</div>
+    <div class="link-cancel" id="cancelLinkBtn">Cancel</div>
+  </div>
+</div>
+
+/* ---------- DASHBOARD ---------- */
+  .header{
+    background:var(--blue);
+    border-radius:0 0 40px 40px;
+    padding:20px 22px 26px;
+    color:#fff;
+  }
+  .header-top{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .icon-btn{
+    width:44px;height:44px;border-radius:50%;
+    background:rgba(255,255,255,.15);
+    border:none;color:#fff;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .icon-circle-white{
+    width:44px;height:44px;border-radius:50%;background:#fff;
+    display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
+  }
+  .header-top h1{font-size:26px;font-weight:800;letter-spacing:1px;}
+  .header-bottom{display:flex;justify-content:space-between;font-size:13px;opacity:.95;margin-bottom:18px;}
+  .status-online{color:#b9ffcf;font-weight:700;}
+  .status-offline{color:#ffc6c6;font-weight:700;}
+
+  .device-switch-row{
+    display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;
+  }
+  .device-chip{
+    flex:0 0 auto;padding:8px 14px;border-radius:14px;
+    background:rgba(255,255,255,.15);color:#fff;font-size:12.5px;font-weight:700;
+    border:1.5px solid transparent;cursor:pointer;white-space:nowrap;
+    -webkit-user-select:none;user-select:none;
+  }
+  .device-chip.selected{background:#fff;color:var(--blue);}
+  .device-chip.add-chip{background:transparent;border:1.5px dashed rgba(255,255,255,.6);}
+
+  .trip-banner{
+    margin:18px 22px 0;padding:14px 18px;border-radius:18px;
+    background:var(--red);color:#fff;font-weight:700;font-size:13.5px;
+    display:none;align-items:center;gap:10px;
+  }
+  .trip-banner.show{display:flex;}
+  .warn-banner{
+    margin:18px 22px 0;padding:14px 18px;border-radius:18px;
+    background:var(--orange);color:#fff;font-weight:700;font-size:13.5px;
+    display:none;align-items:center;gap:10px;
+  }
+  .warn-banner.show{display:flex;}
+  .offline-banner{
+    margin:18px 22px 0;padding:14px 18px;border-radius:18px;
+    background:#5c6270;color:#fff;font-weight:700;font-size:13.5px;
+    display:none;align-items:center;gap:10px;
+  }
+  .offline-banner.show{display:flex;}
+
+  .cards-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:16px;
+    padding:22px;
+  }
+  .card{
+    background:#fff;border-radius:var(--radius-lg);
+    padding:20px 18px 22px;
+    box-shadow:0 10px 30px rgba(30,40,90,.07);
+    min-height:150px;display:flex;flex-direction:column;justify-content:space-between;
+    cursor:pointer;
+    transition:min-height .28s cubic-bezier(.4,0,.2,1), box-shadow .2s ease;
+  }
+  .card:active{box-shadow:0 6px 18px rgba(30,40,90,.1);}
+  .card.expanded{min-height:220px;grid-column:1 / -1;}
+  .card h3{
+    font-size:13px;font-weight:800;color:var(--blue);letter-spacing:.5px;margin-bottom:14px;
+  }
+  .reading{display:flex;align-items:baseline;gap:6px;}
+  .reading .val{font-size:34px;font-weight:700;}
+  .reading .unit{font-size:15px;font-weight:700;color:#444;}
+  .card svg.card-icon{margin-top:10px;}
+  .card.warn{box-shadow:0 0 0 2px #ffb020 inset;}
+  .card.danger{box-shadow:0 0 0 2px #ef4444 inset;}
+
+  /* Sparkline strip shown only once a card is expanded - a quiet trace of
+     the last readings, purely decorative context rather than a full chart. */
+  .card-wave{
+    display:none;margin-top:12px;height:44px;
+  }
+  .card.expanded .card-wave{display:block;}
+  .card-wave svg{width:100%;height:100%;display:block;}
+  .card-wave path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .card-wave .wave-fill{stroke:none;}
+
+  .sockets-section{padding:0 22px 6px;}
+  .sockets-title{font-size:13px;font-weight:800;color:#8a8fa3;letter-spacing:.5px;margin-bottom:10px;}
+  .sockets-row{display:flex;gap:12px;}
+  .socket-slot{
+    flex:1;background:#fff;border-radius:18px;padding:14px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    box-shadow:0 6px 18px rgba(30,40,90,.06);
+  }
+  .socket-dot{width:14px;height:14px;border-radius:50%;background:#d6d9e6;}
+  .socket-dot.occupied{background:var(--green);}
+  .socket-label{font-size:11.5px;font-weight:700;color:#555;}
+  .socket-state{font-size:10.5px;color:#999;}
+
+  /* Per-device stopwatch, now anchored directly under the sockets row for
+     the device currently selected - each device carries its own timer
+     state, this just displays whichever one is on screen. */
+  .timer-section{
+    margin:14px 22px 0;padding:16px 20px;border-radius:20px;
+    background:#fff;box-shadow:0 6px 18px rgba(30,40,90,.06);
+    display:none;align-items:center;justify-content:space-between;
+  }
+  .timer-section.show{display:flex;}
+  .timer-section .label{font-size:12.5px;font-weight:700;color:#7a5cf0;}
+  .timer-section .val{font-size:22px;font-weight:800;color:#7a5cf0;}
+
+  .last-trip-section{
+    margin:12px 22px 0;padding:12px 20px;border-radius:16px;
+    background:#fff;box-shadow:0 6px 18px rgba(30,40,90,.06);
+    display:none;align-items:center;justify-content:space-between;
+  }
+  .last-trip-section.show{display:flex;}
+  .last-trip-section .label{font-size:11.5px;font-weight:700;color:#9096a8;}
+  .last-trip-section .val{font-size:14px;font-weight:800;color:#555;}
+
+  .button-row{
+    display:flex;gap:12px;padding:20px 22px 30px;
+  }
+  .action-btn{
+    flex:1;padding:18px 0;border:none;border-radius:22px;
+    background:var(--blue);color:#fff;font-weight:800;font-size:16px;
+    letter-spacing:.5px;cursor:pointer;
+  }
+  .action-btn:active{transform:scale(.97);}
+  .action-btn.off{background:#5c6270;}
+  .action-btn.reset{background:#7a5cf0;}
+  .action-btn.active-state{box-shadow:0 0 0 3px rgba(255,255,255,.6) inset;}
+  .action-btn:disabled{background:#d3d5e0;color:#999;cursor:not-allowed;}
+
+  /* ---------- HISTORY SCREEN ---------- */
+  .history-header{
+    display:flex;align-items:center;gap:16px;
+    padding:22px;
+  }
+  .back-btn{background:transparent;color:#fff;font-size:22px;border:none;cursor:pointer;}
+  .history-header h1{font-size:22px;font-weight:800;flex:1;text-align:center;margin-right:44px;}
+  .history-list{padding:20px 22px;display:flex;flex-direction:column;gap:14px;}
+  .history-item{
+    background:var(--blue);color:#fff;border-radius:22px;
+    padding:16px 20px;display:flex;flex-direction:column;gap:4px;
+  }
+  .history-item.warning{background:#f5a623;}
+  .history-item.overload{background:#e64545;}
+  .history-item.info{background:#5c6270;}
+  .history-item .msg{font-weight:700;font-size:14.5px;}
+  .history-item .time{font-size:12px;opacity:.85;}
+  .history-empty{
+    text-align:center;color:#9096a8;padding:60px 20px;font-size:14px;
+  }
+
+  /* ---------- USER DRAWER ---------- */
+  .drawer-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);
+    z-index:50;max-width:480px;margin:0 auto;
+  }
+  .drawer-overlay.active{display:block;}
+  .drawer{
+    position:absolute;left:0;top:0;bottom:0;width:78%;max-width:340px;
+    background:#fff;display:flex;flex-direction:column;
+    transform:translateX(-100%);transition:transform .25s ease;
+  }
+  .drawer-overlay.active .drawer{transform:translateX(0);}
+  .drawer-header{
+    background:var(--blue);color:#fff;padding:50px 24px 28px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+  .avatar-lg{
+    width:96px;height:96px;border-radius:50%;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .drawer-header .name{font-size:20px;font-weight:800;letter-spacing:.5px;text-align:center;}
+  /* Editable display-name field: looks like static text until tapped, then
+     becomes an inline input - no separate "edit mode" screen needed. */
+  .name-edit-row{display:flex;align-items:center;gap:8px;justify-content:center;}
+  .name-input{
+    font-size:20px;font-weight:800;letter-spacing:.5px;text-align:center;
+    background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);
+    border-radius:12px;color:#fff;padding:6px 12px;width:100%;max-width:220px;
+  }
+  .name-input::placeholder{color:rgba(255,255,255,.7);}
+  .name-edit-btn{
+    background:rgba(255,255,255,.15);border:none;border-radius:50%;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex:0 0 auto;
+  }
+  .drawer-body{flex:1;padding:18px;overflow-y:auto;}
+  .drawer-section-title{font-size:11.5px;font-weight:800;color:#9096a8;letter-spacing:.5px;margin:6px 4px 8px;}
+  .drawer-item{
+    width:100%;text-align:left;padding:16px 18px;border:none;background:#fff;
+    border-radius:16px;box-shadow:0 4px 16px rgba(30,40,90,.08);
+    font-size:15px;font-weight:600;margin-bottom:10px;cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .drawer-item.selected{box-shadow:0 0 0 2px var(--blue) inset;color:var(--blue);}
+  .drawer-item.add-device{color:var(--blue);justify-content:center;}
+  /* Device row in the drawer: the row itself selects the device; the
+     trailing remove icon is its own tap target so the two never conflict. */
+  .device-row{
+    width:100%;display:flex;align-items:center;background:#fff;
+    border-radius:16px;box-shadow:0 4px 16px rgba(30,40,90,.08);
+    margin-bottom:10px;overflow:hidden;
+  }
+  .device-row.selected{box-shadow:0 0 0 2px var(--blue) inset;}
+  .device-row-main{
+    flex:1;text-align:left;padding:16px 18px;border:none;background:none;
+    font-size:15px;font-weight:600;cursor:pointer;color:inherit;
+  }
+  .device-row.selected .device-row-main{color:var(--blue);}
+  .device-row-remove{
+    padding:0 16px;align-self:stretch;border:none;background:none;cursor:pointer;
+    display:flex;align-items:center;color:#c4c8d6;
+  }
+  .device-row-remove:active{color:var(--red);}
   .drawer-footer{padding:18px;}
   .signout-btn{
     width:100%;padding:16px;border:none;border-radius:20px;
@@ -393,22 +733,26 @@
     <div class="card" id="voltageCard">
       <h3>VOLTAGE</h3>
       <div class="reading"><span class="val" id="voltageVal">0.0</span><span class="unit">V</span></div>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="#f5a623"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
+      <svg class="card-icon" width="26" height="26" viewBox="0 0 24 24" fill="#f5a623"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
+      <div class="card-wave" id="voltageWave"></div>
     </div>
     <div class="card" id="currentCard">
       <h3>CURRENT</h3>
       <div class="reading"><span class="val" id="currentVal">0.0</span><span class="unit">A</span></div>
-      <svg width="30" height="26" viewBox="0 0 30 24" fill="#f5a623"><path d="M12 1L3 12h6l-1 7 9-11h-6l1-7z"/><path d="M22 6l-6 8h4l-1 5 6-8h-4l1-5z" opacity=".7"/></svg>
+      <svg class="card-icon" width="30" height="26" viewBox="0 0 30 24" fill="#f5a623"><path d="M12 1L3 12h6l-1 7 9-11h-6l1-7z"/><path d="M22 6l-6 8h4l-1 5 6-8h-4l1-5z" opacity=".7"/></svg>
+      <div class="card-wave" id="currentWave"></div>
     </div>
     <div class="card" id="energyCard">
       <h3>ENERGY</h3>
       <div class="reading"><span class="val" id="energyVal">0.0</span><span class="unit">kWh</span></div>
-      <svg width="24" height="26" viewBox="0 0 24 26" fill="none" stroke="#f5a623" stroke-width="2"><rect x="2" y="1" width="20" height="24" rx="3"/><path d="M13 6L8 15h4l-1 6 6-9h-4l1-6z" fill="#f5a623" stroke="none"/></svg>
+      <svg class="card-icon" width="24" height="26" viewBox="0 0 24 26" fill="none" stroke="#f5a623" stroke-width="2"><rect x="2" y="1" width="20" height="24" rx="3"/><path d="M13 6L8 15h4l-1 6 6-9h-4l1-6z" fill="#f5a623" stroke="none"/></svg>
+      <div class="card-wave" id="energyWave"></div>
     </div>
     <div class="card" id="powerCard">
       <h3>POWER</h3>
       <div class="reading"><span class="val" id="powerVal">0.0</span><span class="unit">W</span></div>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 8v4a3 3 0 0 0 6 0V8"/><path d="M9 5v3M15 5v3"/></svg>
+      <svg class="card-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 8v4a3 3 0 0 0 6 0V8"/><path d="M9 5v3M15 5v3"/></svg>
+      <div class="card-wave" id="powerWave"></div>
     </div>
   </div>
 
@@ -476,7 +820,13 @@
       <div class="avatar-lg">
         <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#4d6bf0" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       </div>
-      <div class="name" id="drawerUserName">USER</div>
+      <div class="name-edit-row">
+        <div class="name" id="drawerUserName">USER</div>
+        <input class="name-input" id="drawerNameInput" style="display:none;" maxlength="40" placeholder="Your name">
+        <button class="name-edit-btn" id="editNameBtn" aria-label="Edit name">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+      </div>
     </div>
     <div class="drawer-body">
       <div class="drawer-section-title">MY DEVICES</div>
@@ -494,6 +844,9 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
+
+
+<script type="module">
 /* =========================================================================
    FIREBASE CONFIG
    ========================================================================= */
@@ -501,7 +854,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/fireba
 import {
   getAuth, GoogleAuthProvider, signInWithPopup,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  onAuthStateChanged, signOut
+  onAuthStateChanged, signOut, updateProfile
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   getDatabase, ref, onValue, set, get, push, off
@@ -697,6 +1050,9 @@ let currentUser = null;
 let linkedDevices = [];   // array of device codes linked to this account
 let selectedDevice = null;
 const deviceStates = {};  // per-device live state, keyed by code (see DeviceState below)
+// True the moment this session has landed on the dashboard at least once -
+// governs what "Cancel" on the Add Device screen falls back to (see below).
+let hasReachedHome = false;
 
 $('linkDeviceBtn').addEventListener('click', async () => {
   const code = deviceCodeInput.value.trim();
@@ -728,7 +1084,7 @@ $('linkDeviceBtn').addEventListener('click', async () => {
     }
     deviceCodeInput.value = '';
     selectDevice(code);
-    showScreen('dashboardScreen');
+    goHome();
     showToast('Device connected!');
   } catch(err){
     deviceError.textContent = 'Could not connect that device. Please try again.';
@@ -740,17 +1096,33 @@ $('linkDeviceBtn').addEventListener('click', async () => {
 $('skipLinkBtn').addEventListener('click', () => {
   deviceCodeInput.value = '';
   deviceError.textContent = '';
-  showScreen('dashboardScreen');
+  goHome();
   showToast('You can add a device anytime from the menu.');
 });
 
+// Cancel: if this session has already reached the dashboard at least once
+// (skipped before, or opened this screen from the drawer's "+ Add Device"
+// while already having devices), Cancel just returns to that dashboard -
+// nothing is lost. Only a brand-new account that has NEVER reached the
+// dashboard yet gets signed all the way out back to Log In.
 $('cancelLinkBtn').addEventListener('click', async () => {
   deviceCodeInput.value = '';
   deviceError.textContent = '';
+
+  if (hasReachedHome){
+    showScreen('dashboardScreen');
+    return;
+  }
+
   try{ await signOut(auth); } catch(e){ /* ignore */ }
   setAuthMode('login');
   showScreen('authScreen');
 });
+
+function goHome(){
+  hasReachedHome = true;
+  showScreen('dashboardScreen');
+}
 
 $('drawerAddDeviceBtn').addEventListener('click', () => {
   closeDrawer();
@@ -760,7 +1132,7 @@ $('drawerAddDeviceBtn').addEventListener('click', () => {
 });
 
 /* =========================================================================
-   DEVICE SELECTION / CHIPS (header + drawer)
+   DEVICE SELECTION / CHIPS (header) + DEVICE ROWS (drawer, with remove)
    ========================================================================= */
 function renderDeviceChips(){
   const row = $('deviceSwitchRow');
@@ -769,17 +1141,33 @@ function renderDeviceChips(){
   drawerList.innerHTML = '';
 
   linkedDevices.forEach(code => {
+    // Header chip: tap to select. Long-press (or long tap on touch) offers
+    // removal, so the header stays clean while still allowing quick removal.
     const chip = document.createElement('button');
     chip.className = 'device-chip' + (code === selectedDevice ? ' selected' : '');
     chip.textContent = code;
-    chip.addEventListener('click', () => selectDevice(code));
+    attachTapAndHold(chip, () => selectDevice(code), () => confirmRemoveDevice(code));
     row.appendChild(chip);
 
-    const item = document.createElement('button');
-    item.className = 'drawer-item' + (code === selectedDevice ? ' selected' : '');
-    item.textContent = code;
-    item.addEventListener('click', () => { selectDevice(code); closeDrawer(); });
-    drawerList.appendChild(item);
+    // Drawer row: main area selects the device, trailing icon removes it -
+    // two separate tap targets, no ambiguity about which action fires.
+    const rowEl = document.createElement('div');
+    rowEl.className = 'device-row' + (code === selectedDevice ? ' selected' : '');
+
+    const main = document.createElement('button');
+    main.className = 'device-row-main';
+    main.textContent = code;
+    main.addEventListener('click', () => { selectDevice(code); closeDrawer(); });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'device-row-remove';
+    removeBtn.setAttribute('aria-label', 'Remove device ' + code);
+    removeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+    removeBtn.addEventListener('click', (e) => { e.stopPropagation(); confirmRemoveDevice(code); });
+
+    rowEl.appendChild(main);
+    rowEl.appendChild(removeBtn);
+    drawerList.appendChild(rowEl);
   });
 
   const addChip = document.createElement('button');
@@ -791,6 +1179,86 @@ function renderDeviceChips(){
     showScreen('deviceLinkScreen');
   });
   row.appendChild(addChip);
+}
+
+// Minimal long-press helper: fires onTap for a normal click/tap, onHold if
+// the pointer stays down past the threshold (used for the header chip's
+// quick-remove gesture, without needing a separate library).
+function attachTapAndHold(el, onTap, onHold){
+  let pressTimer = null;
+  let didHold = false;
+
+  const start = () => {
+    didHold = false;
+    pressTimer = setTimeout(() => { didHold = true; onHold(); }, 550);
+  };
+  const cancel = () => { clearTimeout(pressTimer); };
+  const end = () => {
+    clearTimeout(pressTimer);
+    if (!didHold) onTap();
+  };
+
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('mouseup', end);
+  el.addEventListener('touchend', end);
+  el.addEventListener('mouseleave', cancel);
+  el.addEventListener('touchcancel', cancel);
+}
+
+function confirmRemoveDevice(code){
+  const ok = window.confirm(`Remove device ${code} from your account? You can add it again later using its code.`);
+  if (ok) removeDevice(code);
+}
+
+async function removeDevice(code){
+  if (!currentUser) return;
+  try{
+    await set(ref(db, `users/${currentUser.uid}/devices/${code}`), null);
+  } catch(e){
+    showToast('Could not remove that device. Please try again.');
+    return;
+  }
+
+  off(ref(db, `devices/${code}/readings`));
+  off(ref(db, `devices/${code}/status`));
+  off(ref(db, `devices/${code}/sockets`));
+  off(ref(db, `devices/${code}/history`));
+  stopLocalStopwatch(code);
+  delete deviceStates[code];
+  linkedDevices = linkedDevices.filter(c => c !== code);
+
+  if (selectedDevice === code){
+    selectedDevice = linkedDevices[0] || null;
+  }
+
+  renderDeviceChips();
+  if (selectedDevice){
+    renderDashboardForSelected();
+  } else {
+    // No devices left: stay on the dashboard per spec, just show it empty.
+    clearDashboardDisplay();
+  }
+  showToast(`Device ${code} removed.`);
+}
+
+// Blanks out every dashboard readout when no device is selected at all
+// (e.g. the last linked device was just removed) - stays on Home rather
+// than bouncing back to Add Device.
+function clearDashboardDisplay(){
+  $('deviceCodeDisplay').textContent = '--';
+  $('statusDisplay').textContent = 'offline';
+  $('statusDisplay').className = 'status-offline';
+  ['voltageVal','currentVal','powerVal'].forEach(id => $(id).textContent = '0.0');
+  $('energyVal').textContent = '0.00';
+  $('offlineBanner').classList.remove('show');
+  $('tripBanner').classList.remove('show');
+  $('warnBanner').classList.remove('show');
+  $('timerSection').classList.remove('show');
+  $('lastTripSection').classList.remove('show');
+  ['onBtn','offBtn','resetBtn'].forEach(id => $(id).disabled = true);
+  renderSockets({ sockets: {} });
+  $('historyList').innerHTML = '<div class="history-empty">No activity recorded yet.</div>';
 }
 
 function selectDevice(code){
@@ -825,6 +1293,9 @@ function newDeviceState(){
     localTimerInterval: null,
     warningNotified: false,
     tripNotified: false,
+    // Short rolling buffer of recent readings, purely for the small
+    // sparkline shown when a card is expanded - not persisted, not analytic.
+    trail: { voltage: [], current: [], power: [], energy: [] },
   };
 }
 
@@ -834,6 +1305,10 @@ function startDeviceListeners(code){
 
   onValue(ref(db, `devices/${code}/readings`), (snap) => {
     st.readings = snap.val() || st.readings;
+    pushTrail(st, 'voltage', st.readings.voltage ?? 0);
+    pushTrail(st, 'current', st.readings.current ?? 0);
+    pushTrail(st, 'power', st.readings.power ?? 0);
+    pushTrail(st, 'energy', st.readings.energy ?? 0);
     if (code === selectedDevice) renderReadings(st);
     checkThresholdNotifications(code, st);
   });
@@ -923,6 +1398,67 @@ function checkThresholdNotifications(code, st){
 /* =========================================================================
    RENDERING — dashboard reflects whichever device is currently selected
    ========================================================================= */
+const TRAIL_MAX_POINTS = 30;
+function pushTrail(st, key, value){
+  const arr = st.trail[key];
+  arr.push(value);
+  if (arr.length > TRAIL_MAX_POINTS) arr.shift();
+}
+
+// Renders a small sparkline for one metric's trail into its wave container.
+// Purely a quiet shape trace, not a labeled chart - decorative context that
+// the numbers above already state precisely.
+function renderWave(containerId, points, color){
+  const el = $(containerId);
+  if (!el) return;
+  if (!points || points.length < 2){
+    el.innerHTML = '';
+    return;
+  }
+  const w = 300, h = 44, pad = 4;
+  const min = Math.min(...points), max = Math.max(...points);
+  const range = (max - min) || 1;
+  const stepX = (w - pad * 2) / (points.length - 1);
+
+  const coords = points.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return [x, y];
+  });
+
+  const linePath = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
+  const fillPath = linePath + ` L${coords[coords.length - 1][0].toFixed(1)},${h} L${coords[0][0].toFixed(1)},${h} Z`;
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <path class="wave-fill" d="${fillPath}" fill="${color}" opacity="0.12"></path>
+      <path d="${linePath}" stroke="${color}"></path>
+    </svg>`;
+}
+
+// Tap-to-expand: only one card open at a time, small growth (not fullscreen)
+// per spec, with its sparkline populated from that metric's trail buffer.
+const CARD_WAVE_COLOR = '#f5a623';
+function setupExpandableCards(){
+  const cardMeta = [
+    { id: 'voltageCard', trailKey: 'voltage', waveId: 'voltageWave' },
+    { id: 'currentCard', trailKey: 'current', waveId: 'currentWave' },
+    { id: 'energyCard',  trailKey: 'energy',  waveId: 'energyWave' },
+    { id: 'powerCard',   trailKey: 'power',   waveId: 'powerWave' },
+  ];
+  cardMeta.forEach(meta => {
+    $(meta.id).addEventListener('click', () => {
+      const alreadyExpanded = $(meta.id).classList.contains('expanded');
+      cardMeta.forEach(m => $(m.id).classList.remove('expanded'));
+      if (!alreadyExpanded){
+        $(meta.id).classList.add('expanded');
+        const st = deviceStates[selectedDevice];
+        if (st) renderWave(meta.waveId, st.trail[meta.trailKey], CARD_WAVE_COLOR);
+      }
+    });
+  });
+}
+
 function renderDashboardForSelected(){
   const st = deviceStates[selectedDevice];
   if (!st) return;
@@ -931,6 +1467,13 @@ function renderDashboardForSelected(){
   renderSockets(st);
   renderTimer(st);
   renderHistory(st);
+  // Refresh whichever card is currently expanded with this device's trail.
+  document.querySelectorAll('.card.expanded').forEach(card => {
+    const waveEl = card.querySelector('.card-wave');
+    if (!waveEl) return;
+    const trailKey = { voltageCard: 'voltage', currentCard: 'current', energyCard: 'energy', powerCard: 'power' }[card.id];
+    if (trailKey) renderWave(waveEl.id, st.trail[trailKey], CARD_WAVE_COLOR);
+  });
 }
 
 function renderReadings(st){
@@ -977,7 +1520,7 @@ function renderStatus(st){
 
 function renderSockets(st){
   [1, 2, 3].forEach(n => {
-    const occupied = !!st.sockets[`socket${n}`];
+    const occupied = !!(st.sockets && st.sockets[`socket${n}`]);
     $(`socketDot${n}`).classList.toggle('occupied', occupied);
     $(`socketState${n}`).textContent = occupied ? 'plugged in' : 'empty';
   });
@@ -1022,6 +1565,7 @@ onAuthStateChanged(auth, async (user) => {
   if (!user){
     linkedDevices = [];
     selectedDevice = null;
+    hasReachedHome = false;
     showScreen('authScreen');
     return;
   }
@@ -1040,10 +1584,11 @@ onAuthStateChanged(auth, async (user) => {
 
   if (linkedDevices.length === 0){
     renderDeviceChips();
+    hasReachedHome = false;
     showScreen('deviceLinkScreen');
   } else {
     selectDevice(linkedDevices[0]);
-    showScreen('dashboardScreen');
+    goHome();
   }
 });
 
@@ -1061,6 +1606,52 @@ $('signOutBtn').addEventListener('click', async () => {
   closeDrawer();
   try{ await signOut(auth); } catch(e){ /* ignore */ }
 });
+
+/* =========================================================================
+   EDITABLE DISPLAY NAME
+   Tapping the pencil swaps the static name for an inline input pre-filled
+   with the current name; saving just updates Firebase Auth's profile.
+   ========================================================================= */
+const drawerNameEl = $('drawerUserName');
+const drawerNameInput = $('drawerNameInput');
+const editNameBtn = $('editNameBtn');
+let editingName = false;
+
+editNameBtn.addEventListener('click', async () => {
+  if (!editingName){
+    editingName = true;
+    drawerNameInput.value = drawerNameEl.textContent;
+    drawerNameEl.style.display = 'none';
+    drawerNameInput.style.display = 'block';
+    drawerNameInput.focus();
+    drawerNameInput.select();
+    return;
+  }
+  await saveDisplayName();
+});
+
+drawerNameInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); await saveDisplayName(); }
+  if (e.key === 'Escape') { editingName = false; drawerNameInput.style.display = 'none'; drawerNameEl.style.display = 'block'; }
+});
+
+async function saveDisplayName(){
+  const newName = drawerNameInput.value.trim();
+  if (!newName){
+    drawerNameInput.focus();
+    return;
+  }
+  try{
+    await updateProfile(currentUser, { displayName: newName });
+    drawerNameEl.textContent = newName;
+  } catch(e){
+    showToast('Could not update your name. Please try again.');
+  } finally {
+    editingName = false;
+    drawerNameInput.style.display = 'none';
+    drawerNameEl.style.display = 'block';
+  }
+}
 
 /* =========================================================================
    HISTORY SCREEN
@@ -1089,6 +1680,8 @@ $('resetBtn').addEventListener('click', () => sendCommand('RESET'));
 
 /* Initial UI state */
 setAuthMode('login');
+setupExpandableCards();
 </script>
 </body>
 </html>
+  

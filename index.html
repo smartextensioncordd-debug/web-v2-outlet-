@@ -1119,7 +1119,7 @@ function checkThresholdNotifications(code, st){
   } else if (c >= 12){
     if (!st.warningNotified){
       st.warningNotified = true;
-      pushNotification('⚠️ Early Warning', `Device ${code} current reached ${c.toFixed(1)}A.`);
+      pushNotification('Early Warning', `Device ${code} current reached ${c.toFixed(1)}A.`);
     }
   } else {
     st.warningNotified = false;

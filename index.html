@@ -1,0 +1,1094 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Outlet - Smart Extension Cord</title>
+<style>
+  :root{
+    --blue:#4d6bf0;
+    --blue-dark:#3d57d6;
+    --orange:#f5a623;
+    --green:#3ecf5c;
+    --red:#e64545;
+    --bg:#f2f3f7;
+    --text-dark:#1c1e29;
+    --radius-lg:28px;
+    --radius-md:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text-dark);
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
+  }
+  .screen{
+    display:none;
+    min-height:100vh;
+    width:100%;
+    max-width:480px;
+    margin:0 auto;
+    position:relative;
+  }
+  .screen.active{display:block;}
+
+  /* ---------- AUTH SCREEN ---------- */
+  #authScreen{
+    background:var(--blue);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:24px;
+  }
+  #authScreen.active{display:flex;}
+  .auth-card{
+    background:#fff;
+    border-radius:var(--radius-lg);
+    padding:36px 28px;
+    width:100%;
+    max-width:380px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);
+  }
+  .auth-logo{
+    width:64px;height:64px;border-radius:50%;
+    background:var(--blue);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;
+  }
+  .auth-title{
+    text-align:center;font-size:26px;font-weight:800;
+    letter-spacing:1px;margin-bottom:4px;color:var(--blue);
+  }
+  .auth-sub{text-align:center;color:#8a8fa3;font-size:13px;margin-bottom:24px;}
+  .google-btn{
+    width:100%;padding:13px;border-radius:16px;border:1.5px solid #e2e4ec;
+    background:#fff;font-size:15px;font-weight:600;color:#333;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    cursor:pointer;margin-bottom:18px;
+  }
+  .google-btn:active{background:#f5f5f7;}
+  .google-btn:disabled{opacity:.6;cursor:not-allowed;}
+  .divider{display:flex;align-items:center;gap:10px;color:#b3b6c4;font-size:12px;margin-bottom:18px;}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:#e6e8f0;}
+  .field{
+    width:100%;padding:13px 16px;border-radius:16px;border:1.5px solid #e2e4ec;
+    font-size:14px;margin-bottom:12px;background:#f8f9fc;
+  }
+  .field:focus{outline:none;border-color:var(--blue);}
+  .password-wrap{position:relative;}
+  .password-wrap .field{padding-right:46px;}
+  .toggle-eye{
+    position:absolute;right:5px;top:0;bottom:12px;
+    width:36px;
+    background:none;border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:10px;
+  }
+  .toggle-eye:active{background:#eef0fa;}
+  .primary-btn{
+    width:100%;padding:14px;border:none;border-radius:16px;
+    background:var(--blue);color:#fff;font-weight:800;font-size:15px;
+    letter-spacing:.5px;cursor:pointer;margin-top:6px;
+  }
+  .primary-btn:active{background:var(--blue-dark);}
+  .primary-btn:disabled{background:#c7cbe0;cursor:not-allowed;}
+  .switch-mode{
+    text-align:center;margin-top:16px;font-size:13px;color:#666;
+  }
+  .switch-mode a{color:var(--blue);font-weight:700;text-decoration:none;}
+  .auth-error{
+    color:#e64545;font-size:12.5px;text-align:center;margin-top:10px;min-height:16px;
+  }
+
+  /* ---------- DEVICE LINK SCREEN ---------- */
+  #deviceLinkScreen{
+    background:var(--blue);
+    display:none;align-items:center;justify-content:center;
+    min-height:100vh;padding:24px;
+  }
+  #deviceLinkScreen.active{display:flex;}
+  .link-skip{
+    text-align:center;margin-top:18px;font-size:13.5px;color:var(--blue);
+    font-weight:700;cursor:pointer;
+  }
+  .link-cancel{
+    text-align:center;margin-top:10px;font-size:13px;color:#888;text-decoration:underline;cursor:pointer;
+  }
+
+  /* ---------- DASHBOARD ---------- */
+  .header{
+    background:var(--blue);
+    border-radius:0 0 40px 40px;
+    padding:20px 22px 26px;
+    color:#fff;
+  }
+  .header-top{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .icon-btn{
+    width:44px;height:44px;border-radius:50%;
+    background:rgba(255,255,255,.15);
+    border:none;color:#fff;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .icon-circle-white{
+    width:44px;height:44px;border-radius:50%;background:#fff;
+    display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
+  }
+  .header-top h1{font-size:26px;font-weight:800;letter-spacing:1px;}
+  .header-bottom{display:flex;justify-content:space-between;font-size:13px;opacity:.95;margin-bottom:18px;}
+  .status-online{color:#b9ffcf;font-weight:700;}
+  .status-offline{color:#ffc6c6;font-weight:700;}
+
+  .device-switch-row{
+    display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;
+  }
+  .device-chip{
+    flex:0 0 auto;padding:8px 14px;border-radius:14px;
+    background:rgba(255,255,255,.15);color:#fff;font-size:12.5px;font-weight:700;
+    border:1.5px solid transparent;cursor:pointer;white-space:nowrap;
+  }
+  .device-chip.selected{background:#fff;color:var(--blue);}
+  .device-chip.add-chip{background:transparent;border:1.5px dashed rgba(255,255,255,.6);}
+
+  .trip-banner{
+    margin:18px 22px 0;padding:14px 18px;border-radius:18px;
+    background:var(--red);color:#fff;font-weight:700;font-size:13.5px;
+    display:none;align-items:center;gap:10px;
+  }
+  .trip-banner.show{display:flex;}
+  .warn-banner{
+    margin:18px 22px 0;padding:14px 18px;border-radius:18px;
+    background:var(--orange);color:#fff;font-weight:700;font-size:13.5px;
+    display:none;align-items:center;gap:10px;
+  }
+  .warn-banner.show{display:flex;}
+  .offline-banner{
+    margin:18px 22px 0;padding:14px 18px;border-radius:18px;
+    background:#5c6270;color:#fff;font-weight:700;font-size:13.5px;
+    display:none;align-items:center;gap:10px;
+  }
+  .offline-banner.show{display:flex;}
+
+  .cards-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:16px;
+    padding:22px;
+  }
+  .card{
+    background:#fff;border-radius:var(--radius-lg);
+    padding:20px 18px 22px;
+    box-shadow:0 10px 30px rgba(30,40,90,.07);
+    min-height:150px;display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .card h3{
+    font-size:13px;font-weight:800;color:var(--blue);letter-spacing:.5px;margin-bottom:14px;
+  }
+  .reading{display:flex;align-items:baseline;gap:6px;}
+  .reading .val{font-size:34px;font-weight:700;}
+  .reading .unit{font-size:15px;font-weight:700;color:#444;}
+  .card svg{margin-top:10px;}
+  .card.warn{box-shadow:0 0 0 2px #ffb020 inset;}
+  .card.danger{box-shadow:0 0 0 2px #ef4444 inset;}
+
+  .sockets-section{padding:0 22px 6px;}
+  .sockets-title{font-size:13px;font-weight:800;color:#8a8fa3;letter-spacing:.5px;margin-bottom:10px;}
+  .sockets-row{display:flex;gap:12px;}
+  .socket-slot{
+    flex:1;background:#fff;border-radius:18px;padding:14px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    box-shadow:0 6px 18px rgba(30,40,90,.06);
+  }
+  .socket-dot{width:14px;height:14px;border-radius:50%;background:#d6d9e6;}
+  .socket-dot.occupied{background:var(--green);}
+  .socket-label{font-size:11.5px;font-weight:700;color:#555;}
+  .socket-state{font-size:10.5px;color:#999;}
+
+  .timer-section{
+    margin:16px 22px 0;padding:16px 20px;border-radius:20px;
+    background:#fff;box-shadow:0 6px 18px rgba(30,40,90,.06);
+    display:none;align-items:center;justify-content:space-between;
+  }
+  .timer-section.show{display:flex;}
+  .timer-section .label{font-size:12.5px;font-weight:700;color:#7a5cf0;}
+  .timer-section .val{font-size:22px;font-weight:800;color:#7a5cf0;}
+
+  .last-trip-section{
+    margin:12px 22px 0;padding:12px 20px;border-radius:16px;
+    background:#fff;box-shadow:0 6px 18px rgba(30,40,90,.06);
+    display:none;align-items:center;justify-content:space-between;
+  }
+  .last-trip-section.show{display:flex;}
+  .last-trip-section .label{font-size:11.5px;font-weight:700;color:#9096a8;}
+  .last-trip-section .val{font-size:14px;font-weight:800;color:#555;}
+
+  .button-row{
+    display:flex;gap:12px;padding:20px 22px 30px;
+  }
+  .action-btn{
+    flex:1;padding:18px 0;border:none;border-radius:22px;
+    background:var(--blue);color:#fff;font-weight:800;font-size:16px;
+    letter-spacing:.5px;cursor:pointer;
+  }
+  .action-btn:active{transform:scale(.97);}
+  .action-btn.off{background:#5c6270;}
+  .action-btn.reset{background:#7a5cf0;}
+  .action-btn.active-state{box-shadow:0 0 0 3px rgba(255,255,255,.6) inset;}
+  .action-btn:disabled{background:#d3d5e0;color:#999;cursor:not-allowed;}
+
+  /* ---------- HISTORY SCREEN ---------- */
+  .history-header{
+    display:flex;align-items:center;gap:16px;
+    padding:22px;
+  }
+  .back-btn{background:transparent;color:#fff;font-size:22px;border:none;cursor:pointer;}
+  .history-header h1{font-size:22px;font-weight:800;flex:1;text-align:center;margin-right:44px;}
+  .history-list{padding:20px 22px;display:flex;flex-direction:column;gap:14px;}
+  .history-item{
+    background:var(--blue);color:#fff;border-radius:22px;
+    padding:16px 20px;display:flex;flex-direction:column;gap:4px;
+  }
+  .history-item.warning{background:#f5a623;}
+  .history-item.overload{background:#e64545;}
+  .history-item.info{background:#5c6270;}
+  .history-item .msg{font-weight:700;font-size:14.5px;}
+  .history-item .time{font-size:12px;opacity:.85;}
+  .history-empty{
+    text-align:center;color:#9096a8;padding:60px 20px;font-size:14px;
+  }
+
+  /* ---------- USER DRAWER ---------- */
+  .drawer-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);
+    z-index:50;max-width:480px;margin:0 auto;
+  }
+  .drawer-overlay.active{display:block;}
+  .drawer{
+    position:absolute;left:0;top:0;bottom:0;width:78%;max-width:340px;
+    background:#fff;display:flex;flex-direction:column;
+    transform:translateX(-100%);transition:transform .25s ease;
+  }
+  .drawer-overlay.active .drawer{transform:translateX(0);}
+  .drawer-header{
+    background:var(--blue);color:#fff;padding:50px 24px 28px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+  .avatar-lg{
+    width:96px;height:96px;border-radius:50%;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .drawer-header .name{font-size:20px;font-weight:800;letter-spacing:.5px;text-align:center;}
+  .drawer-body{flex:1;padding:18px;overflow-y:auto;}
+  .drawer-section-title{font-size:11.5px;font-weight:800;color:#9096a8;letter-spacing:.5px;margin:6px 4px 8px;}
+  .drawer-item{
+    width:100%;text-align:left;padding:16px 18px;border:none;background:#fff;
+    border-radius:16px;box-shadow:0 4px 16px rgba(30,40,90,.08);
+    font-size:15px;font-weight:600;margin-bottom:10px;cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .drawer-item.selected{box-shadow:0 0 0 2px var(--blue) inset;color:var(--blue);}
+  .drawer-item.add-device{color:var(--blue);justify-content:center;}
+  .drawer-footer{padding:18px;}
+  .signout-btn{
+    width:100%;padding:16px;border:none;border-radius:20px;
+    background:var(--blue);color:#fff;font-weight:800;font-size:15px;cursor:pointer;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+    background:#1c1e29;color:#fff;padding:12px 20px;border-radius:14px;
+    font-size:13.5px;z-index:200;opacity:0;transition:opacity .3s;
+    max-width:90%;text-align:center;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="authScreen" class="screen active">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
+    </div>
+    <div class="auth-title">OUTLET</div>
+    <div class="auth-sub">Smart Extension Cord Monitor</div>
+
+    <button class="google-btn" id="googleSignInBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l6-6C33.6 6.5 29.1 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.3-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c2.8 0 5.3 1 7.3 2.7l6-6C33.6 6.5 29.1 4.5 24 4.5c-7.6 0-14.1 4.3-17.7 10.2z"/><path fill="#4CAF50" d="M24 43.5c5 0 9.6-1.9 13-5.1l-6.2-5.2c-2 1.4-4.5 2.3-6.8 2.3-5.3 0-9.7-3.6-11.3-8.4l-6.5 5C9.8 39.1 16.4 43.5 24 43.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.2 5.2C40.9 36 43.5 30.5 43.5 24c0-1.2-.1-2.4-.3-3.5z"/></svg>
+      Sign in with Google
+    </button>
+
+    <div class="divider">OR</div>
+
+    <input type="email" id="emailInput" class="field" placeholder="Email address" autocomplete="email">
+
+    <div class="password-wrap">
+      <input type="password" id="passwordInput" class="field" placeholder="Password" autocomplete="current-password">
+      <button type="button" class="toggle-eye" data-target="passwordInput" aria-label="Show password"></button>
+    </div>
+
+    <div class="password-wrap" id="confirmPasswordWrap" style="display:none;">
+      <input type="password" id="confirmPasswordInput" class="field" placeholder="Confirm Password" autocomplete="new-password">
+      <button type="button" class="toggle-eye" data-target="confirmPasswordInput" aria-label="Show password"></button>
+    </div>
+
+    <button class="primary-btn" id="authSubmitBtn">LOG IN</button>
+    <div class="auth-error" id="authError"></div>
+
+    <div class="switch-mode">
+      <span id="switchModeText">Don't have an account?</span>
+      <a href="#" id="switchModeLink">Create Account</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DEVICE LINK SCREEN ============ -->
+<div id="deviceLinkScreen" class="screen">
+  <div class="auth-card">
+    <div class="auth-title" style="color:var(--blue)">ADD DEVICE</div>
+    <div class="auth-sub">Enter the device code printed on the unit</div>
+    <input type="text" id="deviceCodeInput" class="field" placeholder="e.g. 0001" inputmode="numeric" pattern="[0-9]*" style="text-align:center;letter-spacing:3px;font-weight:700;">
+    <button class="primary-btn" id="linkDeviceBtn">CONNECT DEVICE</button>
+    <div class="auth-error" id="deviceError"></div>
+    <div class="link-skip" id="skipLinkBtn">Skip for now</div>
+    <div class="link-cancel" id="cancelLinkBtn">Cancel</div>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="dashboardScreen" class="screen">
+  <div class="header">
+    <div class="header-top">
+      <button class="icon-circle-white" id="openDrawerBtn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4d6bf0" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </button>
+      <h1 id="deviceTitle">OUTLET</h1>
+      <button class="icon-btn" id="openHistoryBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg>
+      </button>
+    </div>
+    <div class="header-bottom">
+      <span>Device: <span id="deviceCodeDisplay">--</span></span>
+      <span>Status: <span id="statusDisplay" class="status-offline">offline</span></span>
+    </div>
+    <div class="device-switch-row" id="deviceSwitchRow"></div>
+  </div>
+
+  <div class="offline-banner" id="offlineBanner">
+    ⚠ Device is offline. Showing last known readings - live data and remote control are paused.
+  </div>
+  <div class="trip-banner" id="tripBanner">
+    ⚠ Device has TRIPPED at 15A. Please unplug the device immediately, then press RESET.
+  </div>
+  <div class="warn-banner" id="warnBanner">
+    ⚠ Current has reached 12A. Approaching overload limit.
+  </div>
+
+  <div class="cards-grid">
+    <div class="card" id="voltageCard">
+      <h3>VOLTAGE</h3>
+      <div class="reading"><span class="val" id="voltageVal">0.0</span><span class="unit">V</span></div>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="#f5a623"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
+    </div>
+    <div class="card" id="currentCard">
+      <h3>CURRENT</h3>
+      <div class="reading"><span class="val" id="currentVal">0.0</span><span class="unit">A</span></div>
+      <svg width="30" height="26" viewBox="0 0 30 24" fill="#f5a623"><path d="M12 1L3 12h6l-1 7 9-11h-6l1-7z"/><path d="M22 6l-6 8h4l-1 5 6-8h-4l1-5z" opacity=".7"/></svg>
+    </div>
+    <div class="card" id="energyCard">
+      <h3>ENERGY</h3>
+      <div class="reading"><span class="val" id="energyVal">0.0</span><span class="unit">kWh</span></div>
+      <svg width="24" height="26" viewBox="0 0 24 26" fill="none" stroke="#f5a623" stroke-width="2"><rect x="2" y="1" width="20" height="24" rx="3"/><path d="M13 6L8 15h4l-1 6 6-9h-4l1-6z" fill="#f5a623" stroke="none"/></svg>
+    </div>
+    <div class="card" id="powerCard">
+      <h3>POWER</h3>
+      <div class="reading"><span class="val" id="powerVal">0.0</span><span class="unit">W</span></div>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 8v4a3 3 0 0 0 6 0V8"/><path d="M9 5v3M15 5v3"/></svg>
+    </div>
+  </div>
+
+  <div class="sockets-section">
+    <div class="sockets-title">SOCKETS (3)</div>
+    <div class="sockets-row" id="socketsRow">
+      <div class="socket-slot" data-socket="socket1">
+        <div class="socket-dot" id="socketDot1"></div>
+        <div class="socket-label">Socket 1</div>
+        <div class="socket-state" id="socketState1">empty</div>
+      </div>
+      <div class="socket-slot" data-socket="socket2">
+        <div class="socket-dot" id="socketDot2"></div>
+        <div class="socket-label">Socket 2</div>
+        <div class="socket-state" id="socketState2">empty</div>
+      </div>
+      <div class="socket-slot" data-socket="socket3">
+        <div class="socket-dot" id="socketDot3"></div>
+        <div class="socket-label">Socket 3</div>
+        <div class="socket-state" id="socketState3">empty</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live stopwatch: starts the instant this device's trip signal turns on,
+       stops the instant its relay/off signal turns on again (see JS). -->
+  <div class="timer-section" id="timerSection">
+    <span class="label">TRIP CUTOFF TIMER</span>
+    <span class="val" id="timerDisplay">00:00</span>
+  </div>
+
+  <!-- Frozen duration of this device's most recent trip, kept visible even
+       after the live stopwatch above has reset back to 00:00. -->
+  <div class="last-trip-section" id="lastTripSection">
+    <span class="label">LAST TRIP DURATION</span>
+    <span class="val" id="lastTripDisplay">--</span>
+  </div>
+
+  <div class="button-row">
+    <button class="action-btn" id="onBtn">ON</button>
+    <button class="action-btn off" id="offBtn">OFF</button>
+    <button class="action-btn reset" id="resetBtn" disabled>RESET</button>
+  </div>
+</div>
+
+<!-- ============ HISTORY SCREEN ============ -->
+<div id="historyScreen" class="screen">
+  <div class="header">
+    <div class="history-header">
+      <button class="back-btn" id="backFromHistoryBtn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h1>HISTORY</h1>
+    </div>
+  </div>
+  <div class="history-list" id="historyList">
+    <div class="history-empty">No activity recorded yet.</div>
+  </div>
+</div>
+
+<!-- ============ USER DRAWER ============ -->
+<div class="drawer-overlay" id="drawerOverlay">
+  <div class="drawer">
+    <div class="drawer-header">
+      <div class="avatar-lg">
+        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#4d6bf0" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <div class="name" id="drawerUserName">USER</div>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-section-title">MY DEVICES</div>
+      <div id="drawerDeviceList"></div>
+      <button class="drawer-item add-device" id="drawerAddDeviceBtn">+ Add Device</button>
+      <div class="drawer-section-title">MENU</div>
+      <button class="drawer-item" id="drawerHistoryBtn">History</button>
+    </div>
+    <div class="drawer-footer">
+      <button class="signout-btn" id="signOutBtn">SIGN OUT</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* =========================================================================
+   FIREBASE CONFIG
+   ========================================================================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getDatabase, ref, onValue, set, get, push, off
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCzWiH6V4FjzmWHItQiOCwUkXHUUh9LS-c",
+  authDomain: "smart-extension-outlet.firebaseapp.com",
+  databaseURL: "https://smart-extension-outlet-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "smart-extension-outlet",
+  storageBucket: "smart-extension-outlet.firebasestorage.app",
+  messagingSenderId: "590670921190",
+  appId: "1:590670921190:web:4768bbfc12b11ba5252a27"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const googleProvider = new GoogleAuthProvider();
+
+/* =========================================================================
+   NOTE ON NOTIFICATIONS
+   The Notification API used below only fires while this page/tab is open.
+   It is NOT a true push notification that wakes a closed browser/app. For
+   alerts that arrive even when the app is fully closed, this project would
+   need Firebase Cloud Messaging + a service worker + a small cloud function
+   watching the RTDB. Flag this if "closed app" alerts are a hard requirement.
+   ========================================================================= */
+function requestNotifPermission(){
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+function pushNotification(title, body){
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification(title, { body });
+  }
+}
+
+/* =========================================================================
+   SMALL HELPERS
+   ========================================================================= */
+function $(id){ return document.getElementById(id); }
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+let toastTimer = null;
+function showToast(msg, duration = 2200){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function friendlyAuthError(err){
+  const code = err && err.code ? err.code : '';
+  if (code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
+  if (code.includes('user-not-found')) return 'No account found with that email.';
+  if (code.includes('email-already-in-use')) return 'An account already exists with that email.';
+  if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
+  if (code.includes('invalid-email')) return 'Please enter a valid email address.';
+  if (code.includes('popup-closed-by-user')) return '';
+  return 'Something went wrong. Please try again.';
+}
+
+function fmtTime(totalSeconds){
+  const m = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const s = String(totalSeconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+/* =========================================================================
+   PASSWORD SHOW / HIDE TOGGLES
+   ========================================================================= */
+const EYE_ICON =
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9096a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_ICON =
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9096a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.06M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-3.22 4.53M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+document.querySelectorAll('.toggle-eye').forEach(btn => {
+  btn.innerHTML = EYE_ICON;
+  btn.addEventListener('click', () => {
+    const input = $(btn.dataset.target);
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    btn.innerHTML = isHidden ? EYE_OFF_ICON : EYE_ICON;
+    btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+  });
+});
+
+/* =========================================================================
+   AUTH SCREEN — Log In vs Create Account
+   ========================================================================= */
+let authMode = 'login';
+
+const emailInput = $('emailInput');
+const passwordInput = $('passwordInput');
+const confirmPasswordWrap = $('confirmPasswordWrap');
+const confirmPasswordInput = $('confirmPasswordInput');
+const authSubmitBtn = $('authSubmitBtn');
+const authError = $('authError');
+const switchModeText = $('switchModeText');
+const switchModeLink = $('switchModeLink');
+
+function setAuthMode(mode){
+  authMode = mode;
+  authError.textContent = '';
+  passwordInput.value = '';
+  confirmPasswordInput.value = '';
+  document.querySelectorAll('.toggle-eye').forEach(btn => {
+    const input = $(btn.dataset.target);
+    input.type = 'password';
+    btn.innerHTML = EYE_ICON;
+  });
+
+  if (mode === 'signup'){
+    passwordInput.placeholder = 'Create Password';
+    passwordInput.autocomplete = 'new-password';
+    confirmPasswordWrap.style.display = 'block';
+    authSubmitBtn.textContent = 'CREATE ACCOUNT';
+    switchModeText.textContent = 'Already have an account?';
+    switchModeLink.textContent = 'Log In';
+  } else {
+    passwordInput.placeholder = 'Password';
+    passwordInput.autocomplete = 'current-password';
+    confirmPasswordWrap.style.display = 'none';
+    authSubmitBtn.textContent = 'LOG IN';
+    switchModeText.textContent = "Don't have an account?";
+    switchModeLink.textContent = 'Create Account';
+  }
+}
+
+switchModeLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  setAuthMode(authMode === 'login' ? 'signup' : 'login');
+});
+
+authSubmitBtn.addEventListener('click', async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+  authError.textContent = '';
+
+  if (!email || !password){
+    authError.textContent = 'Please fill in all fields.';
+    return;
+  }
+  if (authMode === 'signup'){
+    if (password.length < 6){
+      authError.textContent = 'Password should be at least 6 characters.';
+      return;
+    }
+    if (password !== confirmPasswordInput.value){
+      authError.textContent = 'Passwords do not match.';
+      return;
+    }
+  }
+
+  authSubmitBtn.disabled = true;
+  try{
+    if (authMode === 'signup'){
+      await createUserWithEmailAndPassword(auth, email, password);
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+    }
+  } catch(err){
+    authError.textContent = friendlyAuthError(err);
+  } finally {
+    authSubmitBtn.disabled = false;
+  }
+});
+
+$('googleSignInBtn').addEventListener('click', async () => {
+  authError.textContent = '';
+  try{
+    await signInWithPopup(auth, googleProvider);
+  } catch(err){
+    authError.textContent = friendlyAuthError(err);
+  }
+});
+
+/* =========================================================================
+   DEVICE LINKING
+   Per the ESP32 firmware: a code is only valid once that unit has actually
+   gone online and written devices/{code}/registered = true to Firebase.
+   ========================================================================= */
+const deviceCodeInput = $('deviceCodeInput');
+const deviceError = $('deviceError');
+let currentUser = null;
+let linkedDevices = [];   // array of device codes linked to this account
+let selectedDevice = null;
+const deviceStates = {};  // per-device live state, keyed by code (see DeviceState below)
+
+$('linkDeviceBtn').addEventListener('click', async () => {
+  const code = deviceCodeInput.value.trim();
+  deviceError.textContent = '';
+
+  if (!code){
+    deviceError.textContent = 'Please enter your device code.';
+    return;
+  }
+  if (!currentUser){
+    deviceError.textContent = 'You need to be signed in first.';
+    return;
+  }
+
+  $('linkDeviceBtn').disabled = true;
+  try{
+    // Confirm this device actually exists (ESP32 must have gone online at
+    // least once and set devices/{code}/registered = true) before linking.
+    const regSnap = await get(ref(db, `devices/${code}/registered`));
+    if (!regSnap.exists() || regSnap.val() !== true){
+      deviceError.textContent = 'Device code not found. Make sure the unit has been powered on and connected to WiFi at least once.';
+      return;
+    }
+
+    await set(ref(db, `users/${currentUser.uid}/devices/${code}`), true);
+    if (!linkedDevices.includes(code)){
+      linkedDevices.push(code);
+      startDeviceListeners(code);
+    }
+    deviceCodeInput.value = '';
+    selectDevice(code);
+    showScreen('dashboardScreen');
+    showToast('Device connected!');
+  } catch(err){
+    deviceError.textContent = 'Could not connect that device. Please try again.';
+  } finally {
+    $('linkDeviceBtn').disabled = false;
+  }
+});
+
+$('skipLinkBtn').addEventListener('click', () => {
+  deviceCodeInput.value = '';
+  deviceError.textContent = '';
+  showScreen('dashboardScreen');
+  showToast('You can add a device anytime from the menu.');
+});
+
+$('cancelLinkBtn').addEventListener('click', async () => {
+  deviceCodeInput.value = '';
+  deviceError.textContent = '';
+  try{ await signOut(auth); } catch(e){ /* ignore */ }
+  setAuthMode('login');
+  showScreen('authScreen');
+});
+
+$('drawerAddDeviceBtn').addEventListener('click', () => {
+  closeDrawer();
+  deviceCodeInput.value = '';
+  deviceError.textContent = '';
+  showScreen('deviceLinkScreen');
+});
+
+/* =========================================================================
+   DEVICE SELECTION / CHIPS (header + drawer)
+   ========================================================================= */
+function renderDeviceChips(){
+  const row = $('deviceSwitchRow');
+  const drawerList = $('drawerDeviceList');
+  row.innerHTML = '';
+  drawerList.innerHTML = '';
+
+  linkedDevices.forEach(code => {
+    const chip = document.createElement('button');
+    chip.className = 'device-chip' + (code === selectedDevice ? ' selected' : '');
+    chip.textContent = code;
+    chip.addEventListener('click', () => selectDevice(code));
+    row.appendChild(chip);
+
+    const item = document.createElement('button');
+    item.className = 'drawer-item' + (code === selectedDevice ? ' selected' : '');
+    item.textContent = code;
+    item.addEventListener('click', () => { selectDevice(code); closeDrawer(); });
+    drawerList.appendChild(item);
+  });
+
+  const addChip = document.createElement('button');
+  addChip.className = 'device-chip add-chip';
+  addChip.textContent = '+ Add';
+  addChip.addEventListener('click', () => {
+    deviceCodeInput.value = '';
+    deviceError.textContent = '';
+    showScreen('deviceLinkScreen');
+  });
+  row.appendChild(addChip);
+}
+
+function selectDevice(code){
+  selectedDevice = code;
+  $('deviceCodeDisplay').textContent = code || '--';
+  renderDeviceChips();
+  renderDashboardForSelected();
+}
+
+/* =========================================================================
+   PER-DEVICE LIVE STATE + STOPWATCH
+   Every linked device gets its own listeners and its own stopwatch, so
+   switching between devices (or adding more later) never mixes up timers.
+   Schema written by the ESP32:
+     devices/{code}/readings/{voltage,current,power,energy}
+     devices/{code}/status/{online,relay,tripped,timerSeconds,
+                             lastTripDurationSeconds,sensorHealthy,resetAllowed}
+     devices/{code}/sockets/{socket1,socket2,socket3}
+     devices/{code}/history/{push-id}/{type,message,timestamp}
+     devices/{code}/control/{command,timestamp}   <- app writes this
+   ========================================================================= */
+function newDeviceState(){
+  return {
+    readings: { voltage: 0, current: 0, power: 0, energy: 0 },
+    status: { online: false, relay: false, tripped: false, timerSeconds: 0,
+              lastTripDurationSeconds: 0, sensorHealthy: true, resetAllowed: false },
+    sockets: { socket1: false, socket2: false, socket3: false },
+    history: {},
+    // Local stopwatch mirror: ticks every second in the browser between
+    // Firebase pushes, driven by the ESP32's tripped/timerSeconds signal.
+    localTimerSeconds: 0,
+    localTimerInterval: null,
+    warningNotified: false,
+    tripNotified: false,
+  };
+}
+
+function startDeviceListeners(code){
+  deviceStates[code] = newDeviceState();
+  const st = deviceStates[code];
+
+  onValue(ref(db, `devices/${code}/readings`), (snap) => {
+    st.readings = snap.val() || st.readings;
+    if (code === selectedDevice) renderReadings(st);
+    checkThresholdNotifications(code, st);
+  });
+
+  onValue(ref(db, `devices/${code}/status`), (snap) => {
+    const prevTripped = st.status.tripped;
+    st.status = { ...st.status, ...(snap.val() || {}) };
+
+    // STOPWATCH START: the instant the ESP32's tripped signal turns on.
+    if (st.status.tripped && !prevTripped){
+      startLocalStopwatch(code);
+    }
+    // STOPWATCH STOP: the instant tripped goes back off (relay/off signal
+    // fired, ESP32 already reset timerSeconds to 0 on its side too).
+    if (!st.status.tripped && prevTripped){
+      stopLocalStopwatch(code);
+    }
+
+    if (code === selectedDevice) renderStatus(st);
+  });
+
+  onValue(ref(db, `devices/${code}/sockets`), (snap) => {
+    st.sockets = { ...st.sockets, ...(snap.val() || {}) };
+    if (code === selectedDevice) renderSockets(st);
+  });
+
+  onValue(ref(db, `devices/${code}/history`), (snap) => {
+    st.history = snap.val() || {};
+    if (code === selectedDevice) renderHistory(st);
+  });
+}
+
+function stopAllDeviceListeners(){
+  Object.keys(deviceStates).forEach(code => {
+    off(ref(db, `devices/${code}/readings`));
+    off(ref(db, `devices/${code}/status`));
+    off(ref(db, `devices/${code}/sockets`));
+    off(ref(db, `devices/${code}/history`));
+    stopLocalStopwatch(code);
+    delete deviceStates[code];
+  });
+}
+
+function startLocalStopwatch(code){
+  const st = deviceStates[code];
+  if (!st || st.localTimerInterval) return;
+  st.localTimerSeconds = st.status.timerSeconds || 0;
+  st.localTimerInterval = setInterval(() => {
+    st.localTimerSeconds++;
+    if (code === selectedDevice) renderTimer(st);
+  }, 1000);
+}
+
+function stopLocalStopwatch(code){
+  const st = deviceStates[code];
+  if (!st) return;
+  if (st.localTimerInterval){
+    clearInterval(st.localTimerInterval);
+    st.localTimerInterval = null;
+  }
+  st.localTimerSeconds = 0;
+  if (code === selectedDevice) renderTimer(st);
+}
+
+/* =========================================================================
+   NOTIFICATIONS — 12A warning, 15A trip (per device, edge-triggered)
+   ========================================================================= */
+function checkThresholdNotifications(code, st){
+  const c = st.readings.current || 0;
+
+  if (c >= 15){
+    if (!st.tripNotified){
+      st.tripNotified = true;
+      pushNotification('⚠️ System Overload', `Device ${code} has tripped. Please unplug immediately.`);
+    }
+  } else if (c >= 12){
+    if (!st.warningNotified){
+      st.warningNotified = true;
+      pushNotification('⚠️ Early Warning', `Device ${code} current reached ${c.toFixed(1)}A.`);
+    }
+  } else {
+    st.warningNotified = false;
+    st.tripNotified = false;
+  }
+}
+
+/* =========================================================================
+   RENDERING — dashboard reflects whichever device is currently selected
+   ========================================================================= */
+function renderDashboardForSelected(){
+  const st = deviceStates[selectedDevice];
+  if (!st) return;
+  renderReadings(st);
+  renderStatus(st);
+  renderSockets(st);
+  renderTimer(st);
+  renderHistory(st);
+}
+
+function renderReadings(st){
+  $('voltageVal').textContent = (st.readings.voltage ?? 0).toFixed(1);
+  $('currentVal').textContent = (st.readings.current ?? 0).toFixed(1);
+  $('energyVal').textContent = (st.readings.energy ?? 0).toFixed(2);
+  $('powerVal').textContent = (st.readings.power ?? 0).toFixed(1);
+
+  const c = st.readings.current ?? 0;
+  const currentCard = $('currentCard');
+  currentCard.classList.remove('warn', 'danger');
+  if (c >= 15) currentCard.classList.add('danger');
+  else if (c >= 12) currentCard.classList.add('warn');
+}
+
+function renderStatus(st){
+  const statusEl = $('statusDisplay');
+  statusEl.textContent = st.status.online ? 'online' : 'offline';
+  statusEl.className = st.status.online ? 'status-online' : 'status-offline';
+
+  $('offlineBanner').classList.toggle('show', !st.status.online);
+  $('tripBanner').classList.toggle('show', !!st.status.tripped);
+  $('warnBanner').classList.toggle('show', !st.status.tripped && (st.readings.current ?? 0) >= 12);
+
+  $('onBtn').classList.toggle('active-state', !!st.status.relay);
+  $('offBtn').classList.toggle('active-state', !st.status.relay && !st.status.tripped);
+
+  // Buttons only make sense while the device is reachable.
+  const controlsEnabled = st.status.online;
+  $('onBtn').disabled = !controlsEnabled || st.status.tripped;
+  $('offBtn').disabled = !controlsEnabled || st.status.tripped;
+  // RESET only enabled when the ESP32 itself says resetAllowed = true
+  // (i.e. at least one socket has been unplugged since the trip).
+  $('resetBtn').disabled = !controlsEnabled || !st.status.resetAllowed;
+
+  const lastTripSection = $('lastTripSection');
+  if (st.status.lastTripDurationSeconds > 0){
+    lastTripSection.classList.add('show');
+    $('lastTripDisplay').textContent = fmtTime(st.status.lastTripDurationSeconds);
+  } else {
+    lastTripSection.classList.remove('show');
+  }
+}
+
+function renderSockets(st){
+  [1, 2, 3].forEach(n => {
+    const occupied = !!st.sockets[`socket${n}`];
+    $(`socketDot${n}`).classList.toggle('occupied', occupied);
+    $(`socketState${n}`).textContent = occupied ? 'plugged in' : 'empty';
+  });
+}
+
+function renderTimer(st){
+  const timerSection = $('timerSection');
+  if (st.status.tripped){
+    timerSection.classList.add('show');
+    $('timerDisplay').textContent = fmtTime(st.localTimerSeconds);
+  } else {
+    timerSection.classList.remove('show');
+    $('timerDisplay').textContent = '00:00';
+  }
+}
+
+function renderHistory(st){
+  const list = $('historyList');
+  const entries = Object.values(st.history || {}).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  if (entries.length === 0){
+    list.innerHTML = '<div class="history-empty">No activity recorded yet.</div>';
+    return;
+  }
+
+  list.innerHTML = entries.map(e => {
+    const cls = e.type === 'overload' ? 'overload' : (e.type === 'warning' ? 'warning' : 'info');
+    const time = e.timestamp
+      ? new Date(e.timestamp).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
+      : 'time unknown';
+    return `<div class="history-item ${cls}"><span class="msg">${e.message || ''}</span><span class="time">${time}</span></div>`;
+  }).join('');
+}
+
+/* =========================================================================
+   AUTH STATE — decide whether to show Device Link or the Dashboard
+   ========================================================================= */
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  stopAllDeviceListeners();
+
+  if (!user){
+    linkedDevices = [];
+    selectedDevice = null;
+    showScreen('authScreen');
+    return;
+  }
+
+  $('drawerUserName').textContent = user.displayName || user.email || 'USER';
+  requestNotifPermission();
+
+  try{
+    const snap = await get(ref(db, `users/${user.uid}/devices`));
+    linkedDevices = snap.exists() ? Object.keys(snap.val()) : [];
+  } catch(e){
+    linkedDevices = [];
+  }
+
+  linkedDevices.forEach(code => startDeviceListeners(code));
+
+  if (linkedDevices.length === 0){
+    renderDeviceChips();
+    showScreen('deviceLinkScreen');
+  } else {
+    selectDevice(linkedDevices[0]);
+    showScreen('dashboardScreen');
+  }
+});
+
+/* =========================================================================
+   DRAWER
+   ========================================================================= */
+const drawerOverlay = $('drawerOverlay');
+function openDrawer(){ drawerOverlay.classList.add('active'); }
+function closeDrawer(){ drawerOverlay.classList.remove('active'); }
+
+$('openDrawerBtn').addEventListener('click', openDrawer);
+drawerOverlay.addEventListener('click', (e) => { if (e.target === drawerOverlay) closeDrawer(); });
+
+$('signOutBtn').addEventListener('click', async () => {
+  closeDrawer();
+  try{ await signOut(auth); } catch(e){ /* ignore */ }
+});
+
+/* =========================================================================
+   HISTORY SCREEN
+   ========================================================================= */
+$('openHistoryBtn').addEventListener('click', () => showScreen('historyScreen'));
+$('drawerHistoryBtn').addEventListener('click', () => { closeDrawer(); showScreen('historyScreen'); });
+$('backFromHistoryBtn').addEventListener('click', () => showScreen('dashboardScreen'));
+
+/* =========================================================================
+   ON / OFF / RESET
+   Writes to devices/{code}/control exactly as handleRemoteCommands() on the
+   ESP32 expects: a {command, timestamp} object, where timestamp is a real
+   Unix-ms value the firmware compares against its own NTP-synced clock.
+   ========================================================================= */
+function sendCommand(command){
+  if (!selectedDevice){ showToast('Link a device first.'); return; }
+  set(ref(db, `devices/${selectedDevice}/control`), {
+    command,
+    timestamp: Date.now()
+  });
+}
+
+$('onBtn').addEventListener('click', () => sendCommand('ON'));
+$('offBtn').addEventListener('click', () => sendCommand('OFF'));
+$('resetBtn').addEventListener('click', () => sendCommand('RESET'));
+
+/* Initial UI state */
+setAuthMode('login');
+</script>
+</body>
+</html>
